@@ -1,3 +1,4 @@
+import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
@@ -84,10 +85,44 @@ export const login = async (req, res) => {
 
 export const logout = (req, res) => {
   try {
-    res.cookie("jwt", "", { maxAge: 0 });
+    res.cookie("token", "", { maxAge: 0 });
     res.status(200).json({ message: "چوونەدەرەوە سەرکەوتوو بوو" });
   } catch (error) {
     console.error("Logout error:", error);
+    res.status(500).json({ message: "کێشە ڕویدا لە کۆنتڕۆڵەری یوزەر" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { profilePic } = req.body;
+    const userId = req.user._id;
+
+    if (!profilePic) {
+      return res.status(400).json({ message: "تکایە وێنەی نوێ بنێرە" });
+    }
+
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePic: uploadResponse.secure_url },
+      { new: true },
+    );
+    res.status(200).json({ message: "پڕۆفایل گۆڕدرا", user: updatedUser });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ message: "کێشە ڕویدا لە کۆنتڕۆڵەری یوزەر" });
+  }
+};
+
+export const checkAuth = async (req, res) => {
+  try {
+    res
+      .status(200)
+      .json({ message: "تۆ هەژمارێکی دروستت هەیە", user: req.user });
+  } catch (error) {
+    console.error("Check auth error:", error);
     res.status(500).json({ message: "کێشە ڕویدا لە کۆنتڕۆڵەری یوزەر" });
   }
 };
